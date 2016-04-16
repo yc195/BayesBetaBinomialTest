@@ -2,8 +2,7 @@
 
 ##n1 and n2 are two groups of samples
 ##a and b are hyperparameters for the within-group variations eta1, eta2 \sim Ga(a,b)
-##p0 is Pr(H0), the prior null probability
-bdirmulttest = function(n1,n2,a,b,p0)
+bdirmulttest = function(n1,n2,a,b)
 {
   K=dim(n1)[2]
   flambda_min1=optim(par=rep(1, (2*K)), fn=funcH1,  n1=n1,n2=n2, a1=a, b1=b, method="BFGS", hessian=TRUE)  ## under H1
@@ -15,5 +14,5 @@ bdirmulttest = function(n1,n2,a,b,p0)
   H0=flambda_min0$hessian
   
   logBF=(-flambda1+flambda0+(K-1)*log(2*pi)/2+(unlist(determinant(H0,logarithm=TRUE))[1]-unlist(determinant(H1,logarithm=TRUE))[1])/2-mlbeta(rep(1/K, K)))[[1]]
-  print(1/(1+(1-p0)/p0*exp(logBF)))
+  print(exp(logBF))
 }
