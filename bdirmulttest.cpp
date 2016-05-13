@@ -43,78 +43,31 @@ double hprime(double x)
 }
 
 
-//define a function that maps a K-1 dimensional Euclidean space to a K-1 dimensional probability simplex
+//find loglikelihood under H1 with fixed eta and baseline logit transform and with priors
 // [[Rcpp::export]]
-NumericVector simplexMap(NumericVector u)
-{
-  int K=u.size()+1;
-  NumericVector p(K);
-  p(K-1)=(1-h(u(0)))/2;
-  if (K==2) {
-    p(0)=(1+h(u(0)))/2;
-  } else if (K==3) {
-    p(0)=(1+h(u(0)))*(1-h(u(1)))/4;
-    p(1)=(1+h(u(0)))*(1+h(u(1)))/4;
-  } else {
-    p(0)=(1+h(u(0)))*(1-h(u(1)))/4;
-    for (int i=1;i<K-2;i++) {
-      p(i)=p(i-1)*(1+h(u(i)))*(1-h(u(i+1)))/(2*(1-h(u(i))));
-    }
-    p(K-2)=p(K-3)*(1+h(u(K-2)))/(1-h(u(K-2)));
-  }
-  return p;
-}
-
-
-//find the absolute value of determinant of the Jacobian matrix of mapping in simplexMap
-// [[Rcpp::export]]
-double calcJacobian(NumericVector u)
-{
-  int K=u.size()+1;
-  NumericVector p(K);
-  p=simplexMap(u);
-  double absdetJ;
-  NumericMatrix J(K-1,K-1);
-  if (K==2)
-  {
-    absdetJ=hprime(u(0))/2;
-  } else {
-    for (int i=0; i<K-1;i++) {
-      for (int j=0; j<K-1;j++) {
-        if (j<=i) {
-          J(i,j)=p(i)*hprime(u(j))/(1+h(u(j)));
-        } else if (j==i+1) {
-          J(i,j)=-p(i)*hprime(u(j))/(1-h(u(j)));
-        } else {
-          J(i,j)=0;
-        }
-      }
-    }
-  absdetJ=fabs(determ(J));
-  }
-  return absdetJ;
-}
-
-
-//find the integrand of the integral under H1 as function of vector u and eta 
-// [[Rcpp::export]]
-double funcH1(NumericMatrix n1, NumericMatrix n2, NumericVector uetavec1, double a1, double b1)
+double logitnoeta1(NumericMatrix n1, NumericMatrix n2, NumericVector uetavec1, double eta1, double eta2)
 {
   int S1=n1(_,0).size();
   int S2=n2(_,0).size();
   int K=n1(0,_).size();
   NumericVector p1(K), p2(K);
   NumericVector u1(K-1), u2(K-1);
+  double sum_expu1=1, sum_expu2=1;
   
   for (int h=0;h<K-1;h++) {
-   u1(h)=uetavec1(h);
-   u2(h)=uetavec1(h+K-1);
+    u1(h)=uetavec1(h);
+    u2(h)=uetavec1(h+K-1);
+    sum_expu1=sum_expu1+exp(u1(h));
+    sum_expu2=sum_expu2+exp(u2(h));
   }
-  double eta1=exp(uetavec1(2*K-2));
-  double eta2=exp(uetavec1(2*K-1));
   
-  p1=simplexMap(u1);
-  p2=simplexMap(u2);
+  for (int h=0;h<K-1;h++)
+  {
+    p1(h)=exp(u1(h))/sum_expu1;
+    p2(h)=exp(u2(h))/sum_expu2;
+  }
+  p1(K-1)=1/sum_expu1;
+  p2(K-1)=1/sum_expu2;
   
   double B=0;
   for (int j=0;j<S1;j++) {
@@ -123,27 +76,31 @@ double funcH1(NumericMatrix n1, NumericMatrix n2, NumericVector uetavec1, double
   for (int j=0;j<S2;j++) {
     B=B+mlbeta(n2(j,_)+eta2*p2)-mlbeta(eta2*p2);
   }
-  B=B+(1/K-1)*sum(log(p1)+log(p2))+log(calcJacobian(u1))+log(calcJacobian(u2));
-  B=B+a1*(log(eta1)+log(eta2))-b1*(eta1+eta2);
+  B=B+sum(log(p1)+log(p2))/K;
   return (-B);
 }
 
 
-//find the integrand of the integral under H0 as function of vector u and eta 
+//find loglikelihood under H0 with fixed eta and baseline logit transform and with priors
 // [[Rcpp::export]]
-double funcH0(NumericMatrix n1, NumericMatrix n2, NumericVector uetavec0, double a0, double b0)
+double logitnoeta0(NumericMatrix n1, NumericMatrix n2, NumericVector uetavec0, double eta1, double eta2)
 {
   int S1=n1(_,0).size();
   int S2=n2(_,0).size();
   int K=n1(0,_).size();
-  NumericVector p(K), u0(K-1);
-  for (int i=0;i<K-1;i++) {
-    u0(i)=uetavec0(i);
-  }
-  double eta1=exp(uetavec0(K-1));
-  double eta2=exp(uetavec0(K));
+  double sum_expu=1;
   
-  p=simplexMap(u0);
+  NumericVector p(K), u0(K-1);
+  for (int h=0;h<K-1;h++) {
+    u0(h)=uetavec0(h);
+    sum_expu=sum_expu+exp(u0(h));
+  }
+  
+  for (int h=0;h<K-1;h++)
+  {
+    p(h)=exp(u0(h))/sum_expu;
+  }
+  p(K-1)=1/sum_expu;
   
   double B=0;
   for (int j=0;j<S1;j++) {
@@ -152,7 +109,6 @@ double funcH0(NumericMatrix n1, NumericMatrix n2, NumericVector uetavec0, double
   for (int j=0;j<S2;j++) {
     B=B+mlbeta(n2(j,_)+eta2*p)-mlbeta(eta2*p);
   }
-  B=B+(1/K-1)*sum(log(p))+log(calcJacobian(u0));
-   B=B+a0*(log(eta1)+log(eta2))-b0*(eta1+eta2);
+  B=B+sum(log(p))/K;
   return (-B);
 }
