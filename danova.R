@@ -7,7 +7,7 @@
 
 require(statmod)
 
-##calculates the leave one out Bayes factor in favor of the full model for the variable at position pos
+##calculates the leave one out Bayes factor of the full model in favor of the one left out model for the variable at position pos
 bbtestLOO = function(y,ntest,x,pos,sigma=5,a=10,b=0.1,nq=15)
 {
   points=gauss.quad(nq,"laguerre",alpha=a-1)$nodes
