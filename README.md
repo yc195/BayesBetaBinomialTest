@@ -1,2 +1,2 @@
 # BayesDMTest
-Bayesian Dirichlet-multinomial test for two groups of multivariate count data
+Bayesian Beta-Binomial test for two groups of multivariate count data with covariates and overdispersion
