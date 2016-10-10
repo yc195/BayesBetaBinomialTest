@@ -22,7 +22,7 @@ bdirmulttest = function(n1,n2,nq=10)
 {
   K=dim(n1)[2]
   sq = seq(1,nq,1)
-  points=exp(-1+5*sq/nq)
+  points=10^(-1+5*sq/nq)
   
   H0st=matrix(NA,nrow=nq,ncol=nq)
   H1st=matrix(NA,nrow=nq,ncol=nq)

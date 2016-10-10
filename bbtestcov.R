@@ -18,7 +18,7 @@ bbtestL = function(y,ntest,x,r,sigma2beta=5,nq=10)
 {
   p=dim(x)[[2]]-1
   sq = seq(1,nq,1)
-  points=exp(-1+5*sq/nq)
+  points=10^(-1+5*sq/nq)
   
   H0st=matrix(NA,nrow=nq,ncol=nq)
   H1st=matrix(NA,nrow=nq,ncol=nq)
