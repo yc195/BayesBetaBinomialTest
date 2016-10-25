@@ -14,7 +14,7 @@
 ##r = c(2,3)
 ##BF = bbtestL(y,ntest,x,r)
 
-bbtestL = function(y,ntest,x,r,sigma2beta=5,nq=10)
+bbtestL = function(y,ntest,x,r,sigma2beta=5,nq=10,nrun=20)
 {
   p=dim(x)[[2]]-1
   sq = seq(1,nq,1)
